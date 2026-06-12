@@ -10,7 +10,7 @@ import json
 import sys
 
 import chromadb
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 CRAWLED_FILE = "crawled_data.json"
 CHROMA_PATH = "./chroma_db"
@@ -47,9 +47,8 @@ def embed_and_store() -> None:
 
     print(f"Loaded {len(documents)} pages from {CRAWLED_FILE}")
 
-    # Load model (downloads ~90 MB on first run)
-    print("Loading embedding model (first run downloads ~90 MB)...")
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    print("Loading embedding model...")
+    model = TextEmbedding("BAAI/bge-small-en-v1.5")
 
     # Set up ChromaDB
     client = chromadb.PersistentClient(path=CHROMA_PATH)
@@ -89,7 +88,7 @@ def embed_and_store() -> None:
     all_embeddings: list[list[float]] = []
     for i in range(0, len(all_chunks), batch_size):
         batch = all_chunks[i : i + batch_size]
-        vecs = model.encode(batch, show_progress_bar=False).tolist()
+        vecs = [v.tolist() for v in model.embed(batch)]
         all_embeddings.extend(vecs)
         print(f"  {min(i + batch_size, len(all_chunks))}/{len(all_chunks)} encoded", end="\r")
 

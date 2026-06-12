@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 load_dotenv()
 
@@ -23,15 +23,15 @@ app = FastAPI(title="Mindful Minerals Chatbot")
 
 # --- lazy singletons -------------------------------------------------------
 
-_model: SentenceTransformer | None = None
+_model: TextEmbedding | None = None
 _collection: chromadb.Collection | None = None
 _groq: groq.Groq | None = None
 
 
-def get_model() -> SentenceTransformer:
+def get_model() -> TextEmbedding:
     global _model
     if _model is None:
-        _model = SentenceTransformer("all-MiniLM-L6-v2")
+        _model = TextEmbedding("BAAI/bge-small-en-v1.5")
     return _model
 
 
@@ -96,7 +96,7 @@ async def chat(req: ChatRequest):
     collection = get_collection()
     client = get_groq()
 
-    query_vec = model.encode(req.message).tolist()
+    query_vec = list(model.embed([req.message]))[0].tolist()
 
     results = collection.query(
         query_embeddings=[query_vec],
